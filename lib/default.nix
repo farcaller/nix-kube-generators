@@ -1,42 +1,17 @@
 { nixpkgs }:
 with import nixpkgs { system = "x86_64-linux"; };
 rec {
-  fromHelm = { name, repo, chart, version, namespace ? null, values ? { }, chartHash }:
-    let
-      buildHelm = pkgs.stdenv.mkDerivation {
-        name = "loadHelm-${repo}-${chart}-${version}";
-        nativeBuildInputs = [ pkgs.cacert ];
-
-        phases = [ "installPhase" ];
-        installPhase = ''
-          export HELM_CACHE_HOME=/tmp/.nix-helm-build-cache
-
-          ${pkgs.kubernetes-helm}/bin/helm template \
-          --include-crds \
-          ${if (!builtins.isNull namespace) then "--namespace \"${namespace}\"" else ""} \
-          --repo "${repo}" \
-          --version "${version}" \
-          --values ${writeText "values.yaml" (builtins.toJSON values)} \
-          "${name}" \
-          "${chart}" \
-          > $out
-        '';
-
-        outputHashMode = "recursive";
-        outputHashAlgo = "sha256";
-        outputHash = chartHash;
-      };
-    in
-    fromYAML buildHelm;
-
-  fromYAML = yamlFile:
+  /* Parse a yaml string. If source yaml has several documents a list of them
+    is returned.
+  */
+  fromYAML = yaml:
     let
       mkJSON = (pkgs.stdenv.mkDerivation {
-        inherit yamlFile;
+        inherit yaml;
+        passAsFile = "yaml";
         name = "fromYAML";
         phases = [ "buildPhase" ];
-        passAsFile = [ "yamlFile" ];
-        buildPhase = "${pkgs.yq-go}/bin/yq -o j -M -I0 < ${yamlFile} > $out";
+        buildPhase = "${pkgs.yq-go}/bin/yq -o j -M -I0 $yamlPath > $out";
       });
       readJSON = builtins.readFile mkJSON;
       goodLine = line: builtins.isString line && builtins.stringLength line > 0;
@@ -46,20 +21,89 @@ rec {
     in
     nonNull;
 
-  toYAML = object:
-    let
-      yamlData = writeText "yamldata.yaml" (builtins.toJSON object);
-    in
-    (pkgs.stdenv.mkDerivation {
-      name = "toYAML";
-      phases = [ "buildPhase" ];
-      buildPhase = "cat ${yamlData} | ${pkgs.yq-go}/bin/yq -P > $out";
-    });
+  /* Serialize the object into a yaml file.
+  
+    Note that generally builtins.toJSON *is* a valid yaml. This function is
+    only to be used for extra readability.
+  */
+  toYAMLFile = obj: pkgs.stdenv.mkDerivation {
+    yamlText = builtins.toJSON obj;
+    passAsFile = "yamlText";
+    name = "toYAMLFile";
+    phases = [ "buildPhase" ];
+    buildPhase = "${pkgs.yq-go}/bin/yq -P -M $yamlTextPath > $out";
+  };
 
-  mkResources = objects:
-    let
-      keys = builtins.attrNames objects;
-      toYaml = name: { inherit name; value = toYAML objects.${name}; };
-    in
-    builtins.listToAttrs (map toYaml keys);
+  /* Download a helm chart.
+
+    The correct chartHash must be specified. To evaluate it, build the
+    derivation without the hash first (or with a wrong hash).
+  */
+  downloadHelmChart = { repo, chart, version, chartHash ? pkgs.lib.fakeHash }: pkgs.stdenv.mkDerivation {
+    name = "helm-chart-${repo}-${chart}-${version}";
+    nativeBuildInputs = [ pkgs.cacert ];
+
+    phases = [ "installPhase" ];
+    installPhase = ''
+      export HELM_CACHE_HOME="$TMP/.nix-helm-build-cache"
+
+      OUT_DIR="$TMP/temp-chart-output"
+
+      mkdir -p "$OUT_DIR"
+      mkdir $out
+
+      ${pkgs.kubernetes-helm}/bin/helm pull \
+      --repo "${repo}" \
+      --version "${version}" \
+      "${chart}" \
+      -d $OUT_DIR \
+      --untar
+
+      mv $OUT_DIR/${chart}/* "$out"
+    '';
+
+    outputHashMode = "recursive";
+    outputHashAlgo = "sha256";
+    outputHash = chartHash;
+  };
+
+  /* Build a yaml containing the evalauted chart.
+
+     Chart should point to a directory with the chart source (provided by
+     downloadHelmChart).
+  */
+  buildHelmChart = { name, chart, namespace ? null, values ? { }, includeCRDs ? true }:
+    pkgs.stdenv.mkDerivation {
+      name = "helm-${chart}-${namespace}-${name}";
+
+      passAsFile = [ "helmValues" ];
+      helmValues = builtins.toJSON values;
+      helmNamespaceFlag = if (!builtins.isNull namespace) then "--namespace \"${namespace}\"" else "";
+      helmCRDs = if includeCRDs then "--include-crds" else "";
+
+      phases = [ "installPhase" ];
+      installPhase = ''
+        export HELM_CACHE_HOME="$TMP/.nix-helm-build-cache"
+
+        ${pkgs.kubernetes-helm}/bin/helm template \
+        $helmCRDs \
+        $helmNamespaceFlag \
+        --values $helmValuesPath \
+        "${name}" \
+        "${chart}" \
+        >> $out
+      '';
+    };
+  
+  /* Build a helm chart and return it as parsed yaml. Accepts the same arguments
+     as buildHelmChart.
+  */
+  fromHelm = args: fromYAML (buildHelm args);
+
+  /* Creates a kubernetes List object. */
+  mkList = objs: {
+    apiVersion = "v1";
+    kind = "List";
+    items = objs;
+  };
 }
