@@ -99,7 +99,7 @@ rec {
   /* Build a helm chart and return it as parsed yaml. Accepts the same arguments
      as buildHelmChart.
   */
-  fromHelm = args: fromYAML (buildHelm args);
+  fromHelm = args: fromYAML (buildHelmChart args);
 
   /* Creates a kubernetes List object. */
   mkList = objs: {
