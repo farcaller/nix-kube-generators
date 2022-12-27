@@ -99,7 +99,7 @@ rec {
   /* Build a helm chart and return it as parsed yaml. Accepts the same arguments
      as buildHelmChart.
   */
-  fromHelm = args: fromYAML (buildHelmChart args);
+  fromHelm = args: lib.pipe args [buildHelmChart builtins.readFile fromYAML];
 
   /* Creates a kubernetes List object. */
   mkList = objs: {
