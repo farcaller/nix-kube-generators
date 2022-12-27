@@ -1,7 +1,7 @@
 {
   description = "Nix Generators for Kubernetes";
 
-  outputs = { self, nixpkgs }: {
-
+  outputs = { self }: {
+    lib = { pkgs }: import ./lib { inherit pkgs; };
   };
 }

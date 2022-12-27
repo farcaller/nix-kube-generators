@@ -1,3 +1,3 @@
-{ nixpkgs }: {
-  lib = import ./lib { inherit nixpkgs; };
+{ pkgs }: {
+  lib = import ./lib { inherit pkgs; };
 }

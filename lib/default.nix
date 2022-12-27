@@ -1,5 +1,4 @@
-{ nixpkgs }:
-with import nixpkgs { system = "x86_64-linux"; };
+{ pkgs }:
 rec {
   /* Parse a yaml string. If source yaml has several documents a list of them
     is returned.
