@@ -72,7 +72,7 @@ rec {
      Chart should point to a directory with the chart source (provided by
      downloadHelmChart).
   */
-  buildHelmChart = { name, chart, namespace ? null, values ? { }, includeCRDs ? true }:
+  buildHelmChart = { name, chart, namespace ? null, values ? { }, includeCRDs ? true, kubeVersion ? "v${pkgs.kubernetes.version}" }:
     pkgs.stdenv.mkDerivation {
       name = "helm-${chart}-${namespace}-${name}";
 
@@ -80,6 +80,7 @@ rec {
       helmValues = builtins.toJSON values;
       helmNamespaceFlag = if (!builtins.isNull namespace) then "--namespace \"${namespace}\"" else "";
       helmCRDs = if includeCRDs then "--include-crds" else "";
+      inherit kubeVersion;
 
       phases = [ "installPhase" ];
       installPhase = ''
@@ -88,7 +89,8 @@ rec {
         ${pkgs.kubernetes-helm}/bin/helm template \
         $helmCRDs \
         $helmNamespaceFlag \
-        --values $helmValuesPath \
+        --kube-version "$kubeVersion"
+        --values "$helmValuesPath" \
         "${name}" \
         "${chart}" \
         >> $out
