@@ -88,7 +88,7 @@ rec {
         ${pkgs.kubernetes-helm}/bin/helm template \
         $helmCRDs \
         $helmNamespaceFlag \
-        --kube-version "$kubeVersion"
+        --kube-version "$kubeVersion" \
         --values "$helmValuesPath" \
         "${name}" \
         "${chart}" \
