@@ -77,7 +77,7 @@ rec {
 
       passAsFile = [ "helmValues" ];
       helmValues = builtins.toJSON values;
-      helmNamespaceFlag = if (!builtins.isNull namespace) then "--namespace \"${namespace}\"" else "";
+      helmNamespaceFlag = if (!builtins.isNull namespace) then "--namespace ${namespace}" else "";
       helmCRDs = if includeCRDs then "--include-crds" else "";
       inherit kubeVersion;
 
