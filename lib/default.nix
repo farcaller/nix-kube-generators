@@ -68,10 +68,18 @@ rec {
 
   /* Build a yaml containing the evalauted chart.
 
-     Chart should point to a directory with the chart source (provided by
-     downloadHelmChart).
+    Chart should point to a directory with the chart source (provided by
+    downloadHelmChart).
   */
-  buildHelmChart = { name, chart, namespace ? null, values ? { }, includeCRDs ? true, kubeVersion ? "v${pkgs.kubernetes.version}" }:
+  buildHelmChart =
+    { name
+    , chart
+    , namespace ? null
+    , values ? { }
+    , includeCRDs ? true
+    , kubeVersion ? "v${pkgs.kubernetes.version}"
+    , apiVersions ? []
+    }:
     pkgs.stdenv.mkDerivation {
       name = "helm-${chart}-${namespace}-${name}";
 
@@ -92,14 +100,15 @@ rec {
         --values "$helmValuesPath" \
         "${name}" \
         "${chart}" \
+        ${builtins.concatStringsSep " " (map (v: "-a ${v}") apiVersions)} \
         >> $out
       '';
     };
-  
+
   /* Build a helm chart and return it as parsed yaml. Accepts the same arguments
-     as buildHelmChart.
+    as buildHelmChart.
   */
-  fromHelm = args: pkgs.lib.pipe args [buildHelmChart builtins.readFile fromYAML];
+  fromHelm = args: pkgs.lib.pipe args [ buildHelmChart builtins.readFile fromYAML ];
 
   /* Creates a kubernetes List object. */
   mkList = objs: {
