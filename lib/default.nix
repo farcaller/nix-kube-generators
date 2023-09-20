@@ -33,6 +33,15 @@ rec {
     buildPhase = "${pkgs.yq-go}/bin/yq -P -M $yamlTextPath > $out";
   };
 
+  /* Serialize the objects into a file containing a yaml documents stream. */
+  toYAMLStreamFile = objs: pkgs.stdenv.mkDerivation {
+    yamlText = pkgs.lib.strings.concatStringsSep "\n---\n" (map builtins.toJSON objs);
+    passAsFile = "yamlText";
+    name = "toYAMLFile";
+    phases = [ "buildPhase" ];
+    buildPhase = "${pkgs.yq-go}/bin/yq -P -M $yamlTextPath > $out";
+  };
+
   /* Download a helm chart.
 
     The correct chartHash must be specified. To evaluate it, build the
