@@ -88,13 +88,15 @@ rec {
     , includeCRDs ? true
     , kubeVersion ? "v${pkgs.kubernetes.version}"
     , apiVersions ? []
-    }:
+    }: let
+      ifNamespaceSet = true_val: false_val: if (!builtins.isNull namespace) then true_val else false_val;
+    in
     pkgs.stdenv.mkDerivation {
-      name = "helm-${chart}-${namespace}-${name}";
+      name = ifNamespaceSet "helm-${chart}-${namespace}-${name}" "helm-${chart}-${name}";
 
       passAsFile = [ "helmValues" ];
       helmValues = builtins.toJSON values;
-      helmNamespaceFlag = if (!builtins.isNull namespace) then "--namespace ${namespace}" else "";
+      helmNamespaceFlag = ifNamespaceSet "--namespace ${namespace}"  "";
       helmCRDs = if includeCRDs then "--include-crds" else "";
       inherit kubeVersion;
 
