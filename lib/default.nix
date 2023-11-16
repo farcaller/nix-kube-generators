@@ -18,7 +18,9 @@ rec {
       parsed = map builtins.fromJSON jsonLines;
       nonNull = builtins.filter (v: v != null) parsed;
     in
-    nonNull;
+      if builtins.length nonNull != 1
+      then nonNull
+      else builtins.elemAt nonNull 0;
 
   /* Serialize the object into a yaml file.
   
