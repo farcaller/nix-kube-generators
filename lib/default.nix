@@ -1,7 +1,6 @@
 { pkgs }:
 rec {
-  /* Parse a yaml string. If source yaml has several documents a list of them
-    is returned.
+  /* Parse a yaml string. Returns a list of yaml documents.
   */
   fromYAML = yaml:
     let
