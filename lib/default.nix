@@ -57,7 +57,6 @@ rec {
       OUT_DIR="$TMP/temp-chart-output"
 
       mkdir -p "$OUT_DIR"
-      mkdir $out
 
       ${pkgs.kubernetes-helm}/bin/helm pull \
       --repo "${repo}" \
@@ -66,7 +65,7 @@ rec {
       -d $OUT_DIR \
       --untar
 
-      mv $OUT_DIR/${chart}/* "$out"
+      mv $OUT_DIR/${chart} "$out"
     '';
 
     outputHashMode = "recursive";
