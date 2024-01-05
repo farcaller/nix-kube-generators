@@ -12,6 +12,7 @@ rec {
     }))
     builtins.readFile
     builtins.fromJSON
+    (builtins.filter (v: v != null))
   ];
 
   /* Serialize the object into a yaml file.
