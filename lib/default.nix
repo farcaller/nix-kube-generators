@@ -2,22 +2,17 @@
 rec {
   /* Parse a yaml string. Returns a list of yaml documents.
   */
-  fromYAML = yaml:
-    let
-      mkJSON = (pkgs.stdenv.mkDerivation {
-        inherit yaml;
-        passAsFile = "yaml";
-        name = "fromYAML";
-        phases = [ "buildPhase" ];
-        buildPhase = "${pkgs.yq-go}/bin/yq -o j -M -I0 $yamlPath > $out";
-      });
-      readJSON = builtins.readFile mkJSON;
-      goodLine = line: builtins.isString line && builtins.stringLength line > 0;
-      jsonLines = builtins.filter goodLine (builtins.split "\n" readJSON);
-      parsed = map builtins.fromJSON jsonLines;
-      nonNull = builtins.filter (v: v != null) parsed;
-    in
-    nonNull;
+  fromYAML = yaml: pkgs.lib.pipe yaml [
+    (yaml: (pkgs.stdenv.mkDerivation {
+      inherit yaml;
+      passAsFile = "yaml";
+      name = "fromYAML";
+      phases = [ "buildPhase" ];
+      buildPhase = "${pkgs.busybox}/bin/cat $yamlPath | ${pkgs.yq}/bin/yq -Ms . > $out";
+    }))
+    builtins.readFile
+    builtins.fromJSON
+  ];
 
   /* Serialize the object into a yaml file.
   
