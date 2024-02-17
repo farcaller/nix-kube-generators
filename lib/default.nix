@@ -16,7 +16,7 @@ rec {
   ];
 
   /* Serialize the object into a yaml file.
-  
+
     Note that generally builtins.toJSON *is* a valid yaml. This function is
     only to be used for extra readability.
   */
@@ -82,6 +82,7 @@ rec {
     , includeCRDs ? true
     , kubeVersion ? "v${pkgs.kubernetes.version}"
     , apiVersions ? [ ]
+    , extraOpts ? [ ]
     }:
     let
       hasNamespace = !builtins.isNull namespace;
@@ -107,6 +108,7 @@ rec {
         --values "$helmValuesPath" \
         "${name}" \
         "${chart}" \
+        ${builtins.concatStringsSep " " extraOpts} \
         ${builtins.concatStringsSep " " (map (v: "-a ${v}") apiVersions)} \
         >> $out
       '';
