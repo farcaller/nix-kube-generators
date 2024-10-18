@@ -8,7 +8,7 @@ rec {
       passAsFile = "yaml";
       name = "fromYAML";
       phases = [ "buildPhase" ];
-      buildPhase = "${pkgs.busybox}/bin/cat $yamlPath | ${pkgs.yq}/bin/yq -Ms . > $out";
+      buildPhase = "${pkgs.yq}/bin/yq -Ms . $yamlPath > $out";
     }))
     builtins.readFile
     builtins.fromJSON
