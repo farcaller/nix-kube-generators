@@ -42,7 +42,11 @@ rec {
     The correct chartHash must be specified. To evaluate it, build the
     derivation without the hash first (or with a wrong hash).
   */
-  downloadHelmChart = { repo, chart, version, chartHash ? pkgs.lib.fakeHash }: pkgs.stdenv.mkDerivation {
+  downloadHelmChart = { repo, chart, version, chartHash ? pkgs.lib.fakeHash }:
+  let
+    pullFlags = if (pkgs.lib.hasPrefix "oci://" repo) then "${repo}/${chart}" else "--repo \"${repo}\" \"${chart}\"";
+  in
+  pkgs.stdenv.mkDerivation {
     name = "helm-chart-${repo}-${chart}-${version}";
     nativeBuildInputs = [ pkgs.cacert ];
 
@@ -55,9 +59,8 @@ rec {
       mkdir -p "$OUT_DIR"
 
       ${pkgs.kubernetes-helm}/bin/helm pull \
-      --repo "${repo}" \
       --version "${version}" \
-      "${chart}" \
+      ${pullFlags} \
       -d $OUT_DIR \
       --untar
 
