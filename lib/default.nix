@@ -42,7 +42,7 @@ rec {
     The correct chartHash must be specified. To evaluate it, build the
     derivation without the hash first (or with a wrong hash).
   */
-  downloadHelmChart = { repo, chart, version, chartHash ? pkgs.lib.fakeHash }:
+  downloadHelmChart = { repo, chart, version, chartHash ? pkgs.lib.fakeHash, extraFlags ? "" }:
   let
     pullFlags = if (pkgs.lib.hasPrefix "oci://" repo) then "${repo}/${chart}" else "--repo \"${repo}\" \"${chart}\"";
   in
@@ -62,7 +62,8 @@ rec {
       --version "${version}" \
       ${pullFlags} \
       -d $OUT_DIR \
-      --untar
+      --untar \
+      ${extraFlags}
 
       mv $OUT_DIR/${chart} "$out"
     '';
